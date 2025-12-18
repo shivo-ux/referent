@@ -2,6 +2,7 @@
   "name": "referent",
   "version": "1.0.0",
   "description": "Referent project",
+  "packageManager": "npm@10.0.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
