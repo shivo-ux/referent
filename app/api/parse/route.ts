@@ -33,9 +33,10 @@ export async function POST(request: NextRequest) {
 
     const html = await response.text()
     
-    // Динамический импорт cheerio для избежания проблем с SSR
+    // Динамический импорт cheerio для избежания проблем с SSR и Vercel
     const cheerioModule = await import('cheerio')
-    const cheerio = cheerioModule.default || cheerioModule
+    const cheerio = (cheerioModule as any).default || cheerioModule
+    
     if (!cheerio || typeof cheerio.load !== 'function') {
       throw new Error('Failed to load cheerio library')
     }
