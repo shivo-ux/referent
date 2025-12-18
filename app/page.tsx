@@ -10,6 +10,42 @@ export default function Home() {
   const [result, setResult] = useState('')
   const [activeAction, setActiveAction] = useState<ActionType>(null)
 
+  const handleParse = async () => {
+    if (!url.trim()) {
+      alert('Пожалуйста, введите URL статьи')
+      return
+    }
+
+    setLoading(true)
+    setActiveAction(null)
+    setResult('')
+
+    try {
+      const response = await fetch('/api/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Ошибка при парсинге статьи')
+      }
+
+      const data = await response.json()
+      
+      // Форматируем JSON для красивого отображения
+      const jsonResult = JSON.stringify(data, null, 2)
+      setResult(jsonResult)
+    } catch (error) {
+      setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleAction = async (action: ActionType, actionName: string) => {
     if (!url.trim()) {
       alert('Пожалуйста, введите URL статьи')
@@ -20,12 +56,31 @@ export default function Home() {
     setActiveAction(action)
     setResult('')
 
-    // Здесь будет подключение к AI и выполнение действия
-    // Пока что симулируем загрузку
-    setTimeout(() => {
-      setResult(`Результат для действия "${actionName}" будет здесь.\n\nURL: ${url}\n\nФункциональность AI будет добавлена позже.`)
+    // Сначала парсим статью
+    try {
+      const parseResponse = await fetch('/api/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      if (!parseResponse.ok) {
+        throw new Error('Ошибка при парсинге статьи')
+      }
+
+      const parsedData = await parseResponse.json()
+      
+      // Здесь будет подключение к AI и выполнение действия на основе parsedData
+      // Пока что показываем результат парсинга
+      const jsonResult = JSON.stringify(parsedData, null, 2)
+      setResult(`Результат парсинга для действия "${actionName}":\n\n${jsonResult}\n\nФункциональность AI будет добавлена позже.`)
+    } catch (error) {
+      setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    } finally {
       setLoading(false)
-    }, 1500)
+    }
   }
 
   return (
@@ -55,6 +110,31 @@ export default function Home() {
               placeholder="https://example.com/article"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
             />
+          </div>
+
+          {/* Кнопка парсинга */}
+          <div className="mb-4">
+            <button
+              onClick={handleParse}
+              disabled={loading}
+              className={`w-full px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 ${
+                loading && activeAction !== null
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-500 hover:bg-green-600'
+              }`}
+            >
+              {loading && activeAction === null ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Парсинг статьи...
+                </span>
+              ) : (
+                'Парсить статью'
+              )}
+            </button>
           </div>
 
           {/* Кнопки действий */}
@@ -149,7 +229,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : result ? (
-                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed font-mono text-sm bg-white p-4 rounded border border-gray-300 overflow-auto max-h-[600px]">
                   {result}
                 </div>
               ) : (
