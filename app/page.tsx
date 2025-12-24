@@ -94,30 +94,39 @@ export default function Home() {
       return
     }
 
+    // Проверяем, что action является одним из поддерживаемых для AI обработки
+    if (action !== 'summary' && action !== 'theses' && action !== 'telegram') {
+      alert('Неподдерживаемое действие')
+      return
+    }
+
     setLoading(true)
     setActiveAction(action)
     setResult('')
 
-    // Сначала парсим статью
     try {
-      const parseResponse = await fetch('/api/parse', {
+      // Вызываем универсальный API endpoint для AI обработки
+      const response = await fetch('/api/ai-process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, action }),
       })
 
-      if (!parseResponse.ok) {
-        throw new Error('Ошибка при парсинге статьи')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Ошибка при обработке статьи')
       }
 
-      const parsedData = await parseResponse.json()
+      const data = await response.json()
       
-      // Здесь будет подключение к AI и выполнение действия на основе parsedData
-      // Пока что показываем результат парсинга
-      const jsonResult = JSON.stringify(parsedData, null, 2)
-      setResult(`Результат парсинга для действия "${actionName}":\n\n${jsonResult}\n\nФункциональность AI будет добавлена позже.`)
+      // Выводим результат от AI
+      if (data.result) {
+        setResult(data.result)
+      } else {
+        throw new Error('Результат не получен от AI')
+      }
     } catch (error) {
       setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     } finally {
@@ -296,7 +305,9 @@ export default function Home() {
                 </div>
               ) : result ? (
                 <div className={`whitespace-pre-wrap text-gray-800 leading-relaxed bg-white p-4 rounded border border-gray-300 overflow-auto max-h-[600px] ${
-                  activeAction === 'translate' ? 'text-base' : 'font-mono text-sm'
+                  activeAction === 'translate' || activeAction === 'summary' || activeAction === 'theses' || activeAction === 'telegram'
+                    ? 'text-base'
+                    : 'font-mono text-sm'
                 }`}>
                   {result}
                 </div>
