@@ -10,42 +10,6 @@ export default function Home() {
   const [result, setResult] = useState('')
   const [activeAction, setActiveAction] = useState<ActionType>(null)
 
-  const handleParse = async () => {
-    if (!url.trim()) {
-      alert('Пожалуйста, введите URL статьи')
-      return
-    }
-
-    setLoading(true)
-    setActiveAction(null)
-    setResult('')
-
-    try {
-      const response = await fetch('/api/parse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Ошибка при парсинге статьи')
-      }
-
-      const data = await response.json()
-      
-      // Форматируем JSON для красивого отображения
-      const jsonResult = JSON.stringify(data, null, 2)
-      setResult(jsonResult)
-    } catch (error) {
-      setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleTranslate = async () => {
     if (!url.trim()) {
       alert('Пожалуйста, введите URL статьи')
@@ -163,30 +127,8 @@ export default function Home() {
             />
           </div>
 
-          {/* Кнопки парсинга и перевода */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <button
-              onClick={handleParse}
-              disabled={loading}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 ${
-                loading && activeAction !== null && activeAction !== 'translate'
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-500 hover:bg-green-600'
-              }`}
-            >
-              {loading && activeAction === null ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Парсинг статьи...
-                </span>
-              ) : (
-                'Парсить статью'
-              )}
-            </button>
-
+          {/* Кнопка перевода */}
+          <div className="mb-4">
             <button
               onClick={handleTranslate}
               disabled={loading}
