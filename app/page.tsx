@@ -182,26 +182,37 @@ export default function Home() {
             >
               URL англоязычной статьи
             </label>
-            <input
-              id="article-url"
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Введите URL статьи, например: https://example.com/article"
-              className="w-full px-3 sm:px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm sm:text-base"
-            />
+            <div className="flex gap-2">
+              <input
+                id="article-url"
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Введите URL статьи, например: https://example.com/article"
+                className="flex-1 px-3 sm:px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm sm:text-base"
+              />
+              <button
+                onClick={handleClear}
+                disabled={loading}
+                title="Очистить все поля и результаты"
+                className="px-3 sm:px-4 py-3 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base flex-shrink-0"
+              >
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Очистить</span>
+              </button>
+            </div>
             <p className="mt-2 text-xs sm:text-sm text-gray-500 px-1">
               Укажите ссылку на англоязычную статью
             </p>
           </div>
 
-          {/* Кнопки перевода и очистки */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* Кнопка перевода */}
+          <div className="mb-4">
             <button
               onClick={handleTranslate}
               disabled={loading}
               title="Перевести статью с английского на русский язык"
-              className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 text-sm sm:text-base ${
+              className={`w-full px-4 sm:px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 text-sm sm:text-base ${
                 loading && activeAction !== 'translate'
                   ? 'bg-gray-400 cursor-not-allowed'
                   : activeAction === 'translate'
@@ -220,16 +231,6 @@ export default function Home() {
               ) : (
                 'Перевести статью'
               )}
-            </button>
-
-            <button
-              onClick={handleClear}
-              disabled={loading}
-              title="Очистить все поля и результаты"
-              className="px-4 sm:px-6 py-3 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-sm sm:text-base"
-            >
-              <X className="h-5 w-5" />
-              Очистить
             </button>
           </div>
 
