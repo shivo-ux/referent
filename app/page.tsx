@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { handleApiError, type ErrorInfo } from '@/lib/error-handler'
+import { AlertCircle } from 'lucide-react'
 
 type ActionType = 'summary' | 'theses' | 'telegram' | 'translate' | null
 
@@ -10,6 +13,7 @@ export default function Home() {
   const [result, setResult] = useState('')
   const [activeAction, setActiveAction] = useState<ActionType>(null)
   const [processStatus, setProcessStatus] = useState<string | null>(null)
+  const [error, setError] = useState<ErrorInfo | null>(null)
 
   const handleTranslate = async () => {
     if (!url.trim()) {
@@ -20,6 +24,7 @@ export default function Home() {
     setLoading(true)
     setActiveAction('translate')
     setResult('')
+    setError(null)
     setProcessStatus('Загружаю статью...')
 
     try {
@@ -32,8 +37,11 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Ошибка при переводе статьи')
+        const errorData = await response.json().catch(() => ({}))
+        const errorInfo = handleApiError(errorData, response)
+        setError(errorInfo)
+        setProcessStatus(null)
+        return
       }
 
       setProcessStatus('Перевожу статью...')
@@ -45,13 +53,18 @@ export default function Home() {
       if (data.translation) {
         resultText = data.translation
       } else {
-        resultText = 'Перевод не получен'
+        const errorInfo = handleApiError({ error: 'Translation not received' })
+        setError(errorInfo)
+        setProcessStatus(null)
+        return
       }
       
       setResult(resultText)
+      setError(null)
       setProcessStatus(null)
     } catch (error) {
-      setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      const errorInfo = handleApiError(error)
+      setError(errorInfo)
       setProcessStatus(null)
     } finally {
       setLoading(false)
@@ -73,6 +86,7 @@ export default function Home() {
     setLoading(true)
     setActiveAction(action)
     setResult('')
+    setError(null)
     setProcessStatus('Загружаю статью...')
 
     try {
@@ -86,8 +100,11 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Ошибка при обработке статьи')
+        const errorData = await response.json().catch(() => ({}))
+        const errorInfo = handleApiError(errorData, response)
+        setError(errorInfo)
+        setProcessStatus(null)
+        return
       }
 
       setProcessStatus('Обрабатываю с помощью AI...')
@@ -97,12 +114,17 @@ export default function Home() {
       // Выводим результат от AI
       if (data.result) {
         setResult(data.result)
+        setError(null)
       } else {
-        throw new Error('Результат не получен от AI')
+        const errorInfo = handleApiError({ error: 'AI result not received' })
+        setError(errorInfo)
+        setProcessStatus(null)
+        return
       }
       setProcessStatus(null)
     } catch (error) {
-      setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      const errorInfo = handleApiError(error)
+      setError(errorInfo)
       setProcessStatus(null)
     } finally {
       setLoading(false)
@@ -257,6 +279,18 @@ export default function Home() {
                 </svg>
                 <span className="text-blue-800 text-sm font-medium">{processStatus}</span>
               </div>
+            </div>
+          )}
+
+          {/* Блок ошибок */}
+          {error && (
+            <div className="mt-4 mb-4">
+              <Alert variant="destructive">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <AlertDescription>
+                  {error.friendlyMessage}
+                </AlertDescription>
+              </Alert>
             </div>
           )}
 
