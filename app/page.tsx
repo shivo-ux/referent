@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { handleApiError, type ErrorInfo } from '@/lib/error-handler'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Copy, X } from 'lucide-react'
 
 type ActionType = 'summary' | 'theses' | 'telegram' | 'translate' | null
 
@@ -14,6 +14,38 @@ export default function Home() {
   const [activeAction, setActiveAction] = useState<ActionType>(null)
   const [processStatus, setProcessStatus] = useState<string | null>(null)
   const [error, setError] = useState<ErrorInfo | null>(null)
+  const [copied, setCopied] = useState(false)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  const handleClear = () => {
+    setUrl('')
+    setResult('')
+    setError(null)
+    setActiveAction(null)
+    setProcessStatus(null)
+    setCopied(false)
+  }
+
+  const handleCopy = async () => {
+    if (!result) return
+    
+    try {
+      await navigator.clipboard.writeText(result)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  // Автоматическая прокрутка к результатам после успешной генерации
+  useEffect(() => {
+    if (result && !loading && resultRef.current) {
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }, [result, loading])
 
   const handleTranslate = async () => {
     if (!url.trim()) {
@@ -163,8 +195,8 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Кнопка перевода */}
-          <div className="mb-4">
+          {/* Кнопки перевода и очистки */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <button
               onClick={handleTranslate}
               disabled={loading}
@@ -188,6 +220,16 @@ export default function Home() {
               ) : (
                 'Перевести статью'
               )}
+            </button>
+
+            <button
+              onClick={handleClear}
+              disabled={loading}
+              title="Очистить все поля и результаты"
+              className="px-6 py-3 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            >
+              <X className="h-5 w-5" />
+              Очистить
             </button>
           </div>
 
@@ -295,10 +337,22 @@ export default function Home() {
           )}
 
           {/* Блок для отображения результата */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Результат
-            </label>
+          <div className="mt-6" ref={resultRef}>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Результат
+              </label>
+              {result && !loading && (
+                <button
+                  onClick={handleCopy}
+                  title="Копировать результат"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copied ? 'Скопировано!' : 'Копировать'}
+                </button>
+              )}
+            </div>
             <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 md:p-6 min-h-[200px]">
               {loading ? (
                 <div className="flex items-center justify-center h-48">
