@@ -9,6 +9,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState('')
   const [activeAction, setActiveAction] = useState<ActionType>(null)
+  const [processStatus, setProcessStatus] = useState<string | null>(null)
 
   const handleTranslate = async () => {
     if (!url.trim()) {
@@ -19,6 +20,7 @@ export default function Home() {
     setLoading(true)
     setActiveAction('translate')
     setResult('')
+    setProcessStatus('Загружаю статью...')
 
     try {
       const response = await fetch('/api/translate', {
@@ -34,6 +36,8 @@ export default function Home() {
         throw new Error(error.error || 'Ошибка при переводе статьи')
       }
 
+      setProcessStatus('Перевожу статью...')
+      
       const data = await response.json()
       
       // Выводим перевод
@@ -45,8 +49,10 @@ export default function Home() {
       }
       
       setResult(resultText)
+      setProcessStatus(null)
     } catch (error) {
       setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      setProcessStatus(null)
     } finally {
       setLoading(false)
     }
@@ -67,6 +73,7 @@ export default function Home() {
     setLoading(true)
     setActiveAction(action)
     setResult('')
+    setProcessStatus('Загружаю статью...')
 
     try {
       // Вызываем универсальный API endpoint для AI обработки
@@ -83,6 +90,8 @@ export default function Home() {
         throw new Error(error.error || 'Ошибка при обработке статьи')
       }
 
+      setProcessStatus('Обрабатываю с помощью AI...')
+      
       const data = await response.json()
       
       // Выводим результат от AI
@@ -91,8 +100,10 @@ export default function Home() {
       } else {
         throw new Error('Результат не получен от AI')
       }
+      setProcessStatus(null)
     } catch (error) {
       setResult(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      setProcessStatus(null)
     } finally {
       setLoading(false)
     }
@@ -122,9 +133,12 @@ export default function Home() {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com/article"
+              placeholder="Введите URL статьи, например: https://example.com/article"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
             />
+            <p className="mt-2 text-sm text-gray-500">
+              Укажите ссылку на англоязычную статью
+            </p>
           </div>
 
           {/* Кнопка перевода */}
@@ -132,6 +146,7 @@ export default function Home() {
             <button
               onClick={handleTranslate}
               disabled={loading}
+              title="Перевести статью с английского на русский язык"
               className={`px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 ${
                 loading && activeAction !== 'translate'
                   ? 'bg-gray-400 cursor-not-allowed'
@@ -159,6 +174,7 @@ export default function Home() {
             <button
               onClick={() => handleAction('summary', 'О чем статья?')}
               disabled={loading}
+              title="Получить краткое резюме статьи (2-3 абзаца)"
               className={`px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 ${
                 loading && activeAction !== 'summary'
                   ? 'bg-gray-400 cursor-not-allowed'
@@ -183,6 +199,7 @@ export default function Home() {
             <button
               onClick={() => handleAction('theses', 'Тезисы')}
               disabled={loading}
+              title="Выделить 5-7 основных тезисов статьи в виде списка"
               className={`px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 ${
                 loading && activeAction !== 'theses'
                   ? 'bg-gray-400 cursor-not-allowed'
@@ -207,6 +224,7 @@ export default function Home() {
             <button
               onClick={() => handleAction('telegram', 'Пост для Telegram')}
               disabled={loading}
+              title="Создать структурированный пост для Telegram с эмодзи (до 1000 символов)"
               className={`px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 ${
                 loading && activeAction !== 'telegram'
                   ? 'bg-gray-400 cursor-not-allowed'
@@ -228,6 +246,19 @@ export default function Home() {
               )}
             </button>
           </div>
+
+          {/* Блок статуса процесса */}
+          {processStatus && (
+            <div className="mt-4 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center">
+                <svg className="animate-spin h-5 w-5 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-blue-800 text-sm font-medium">{processStatus}</span>
+              </div>
+            </div>
+          )}
 
           {/* Блок для отображения результата */}
           <div className="mt-6">
