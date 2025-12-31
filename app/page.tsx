@@ -5,12 +5,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { handleApiError, type ErrorInfo } from '@/lib/error-handler'
 import { AlertCircle, Copy, X } from 'lucide-react'
 
-type ActionType = 'summary' | 'theses' | 'telegram' | 'translate' | null
+type ActionType = 'summary' | 'theses' | 'telegram' | 'translate' | 'illustrate' | null
 
 export default function Home() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imagePrompt, setImagePrompt] = useState<string | null>(null)
   const [activeAction, setActiveAction] = useState<ActionType>(null)
   const [processStatus, setProcessStatus] = useState<string | null>(null)
   const [error, setError] = useState<ErrorInfo | null>(null)
@@ -20,6 +22,8 @@ export default function Home() {
   const handleClear = () => {
     setUrl('')
     setResult('')
+    setImageUrl(null)
+    setImagePrompt(null)
     setError(null)
     setActiveAction(null)
     setProcessStatus(null)
@@ -40,12 +44,12 @@ export default function Home() {
 
   // Автоматическая прокрутка к результатам после успешной генерации
   useEffect(() => {
-    if (result && !loading && resultRef.current) {
+    if ((result || imageUrl) && !loading && resultRef.current) {
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 100)
     }
-  }, [result, loading])
+  }, [result, imageUrl, loading])
 
   const handleTranslate = async () => {
     if (!url.trim()) {
@@ -118,6 +122,8 @@ export default function Home() {
     setLoading(true)
     setActiveAction(action)
     setResult('')
+    setImageUrl(null)
+    setImagePrompt(null)
     setError(null)
     setProcessStatus('Загружаю статью...')
 
@@ -149,6 +155,63 @@ export default function Home() {
         setError(null)
       } else {
         const errorInfo = handleApiError({ error: 'AI result not received' })
+        setError(errorInfo)
+        setProcessStatus(null)
+        return
+      }
+      setProcessStatus(null)
+    } catch (error) {
+      const errorInfo = handleApiError(error)
+      setError(errorInfo)
+      setProcessStatus(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleIllustrate = async () => {
+    if (!url.trim()) {
+      alert('Пожалуйста, введите URL статьи')
+      return
+    }
+
+    setLoading(true)
+    setActiveAction('illustrate')
+    setResult('')
+    setImageUrl(null)
+    setImagePrompt(null)
+    setError(null)
+    setProcessStatus('Загружаю статью...')
+
+    try {
+      setProcessStatus('Создаю промпт для изображения...')
+      
+      const response = await fetch('/api/illustrate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorInfo = handleApiError(errorData, response)
+        setError(errorInfo)
+        setProcessStatus(null)
+        return
+      }
+
+      setProcessStatus('Генерирую изображение...')
+      
+      const data = await response.json()
+      
+      if (data.image) {
+        setImageUrl(data.image)
+        setImagePrompt(data.prompt || null)
+        setError(null)
+      } else {
+        const errorInfo = handleApiError({ error: 'Image not received' })
         setError(errorInfo)
         setProcessStatus(null)
         return
@@ -235,7 +298,7 @@ export default function Home() {
           </div>
 
           {/* Кнопки действий */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <button
               onClick={() => handleAction('summary', 'О чем статья?')}
               disabled={loading}
@@ -310,6 +373,31 @@ export default function Home() {
                 'Пост для Telegram'
               )}
             </button>
+
+            <button
+              onClick={handleIllustrate}
+              disabled={loading}
+              title="Сгенерировать иллюстрацию к статье на основе ее содержания"
+              className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white transition-all transform hover:scale-105 active:scale-95 text-sm sm:text-base ${
+                loading && activeAction !== 'illustrate'
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : activeAction === 'illustrate'
+                  ? 'bg-pink-600 shadow-lg'
+                  : 'bg-pink-500 hover:bg-pink-600'
+              }`}
+            >
+              {loading && activeAction === 'illustrate' ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Генерация...
+                </span>
+              ) : (
+                'Иллюстрация'
+              )}
+            </button>
           </div>
 
           {/* Блок статуса процесса */}
@@ -343,7 +431,7 @@ export default function Home() {
               <label className="block text-sm font-medium text-gray-700">
                 Результат
               </label>
-              {result && !loading && (
+              {result && !loading && activeAction !== 'illustrate' && (
                 <button
                   onClick={handleCopy}
                   title="Копировать результат"
@@ -364,6 +452,20 @@ export default function Home() {
                     </svg>
                     <p className="text-gray-600 text-sm sm:text-base">Генерация результата...</p>
                   </div>
+                </div>
+              ) : imageUrl ? (
+                <div className="bg-white p-3 sm:p-4 rounded border border-gray-300">
+                  <img 
+                    src={imageUrl} 
+                    alt="Сгенерированная иллюстрация" 
+                    className="w-full h-auto rounded-lg mb-4 max-h-[600px] object-contain"
+                  />
+                  {imagePrompt && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-xs text-gray-500 mb-2">Промпт для генерации:</p>
+                      <p className="text-sm text-gray-700 italic bg-gray-50 p-2 rounded break-words">{imagePrompt}</p>
+                    </div>
+                  )}
                 </div>
               ) : result ? (
                 <div className={`whitespace-pre-wrap text-gray-800 leading-relaxed bg-white p-3 sm:p-4 rounded border border-gray-300 overflow-auto max-h-[600px] break-words ${
