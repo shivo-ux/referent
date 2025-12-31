@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseArticle } from '@/lib/parse-article'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,24 +30,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Парсим статью
-    const parseResponse = await fetch(`${request.nextUrl.origin}/api/parse`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url }),
-    })
-
-    if (!parseResponse.ok) {
-      const error = await parseResponse.json().catch(() => ({ error: 'Failed to parse article' }))
+    // Парсим статью напрямую
+    let parsedData
+    try {
+      parsedData = await parseArticle(url)
+    } catch (parseError) {
+      console.error('Parse error:', parseError)
       return NextResponse.json(
-        { error: error.error || 'Failed to parse article' },
-        { status: parseResponse.status }
+        { error: parseError instanceof Error ? parseError.message : 'Failed to parse article' },
+        { status: 500 }
       )
     }
-
-    const parsedData = await parseResponse.json()
 
     if (!parsedData.content) {
       return NextResponse.json(
