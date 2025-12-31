@@ -36,13 +36,21 @@ export async function POST(request: NextRequest) {
       parsedData = await parseArticle(url)
     } catch (parseError) {
       console.error('Parse error:', parseError)
+      const errorMessage = parseError instanceof Error ? parseError.message : 'Failed to parse article'
+      // Если ошибка связана с загрузкой URL, возвращаем соответствующий статус
+      if (errorMessage.includes('Failed to fetch URL')) {
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: 404 }
+        )
+      }
       return NextResponse.json(
-        { error: parseError instanceof Error ? parseError.message : 'Failed to parse article' },
+        { error: errorMessage },
         { status: 500 }
       )
     }
 
-    if (!parsedData.content) {
+    if (!parsedData || !parsedData.content) {
       return NextResponse.json(
         { error: 'Article content not found' },
         { status: 400 }
@@ -108,8 +116,9 @@ export async function POST(request: NextRequest) {
     const imagePrompt = promptData.choices[0].message.content.trim()
 
     // Шаг 2: Генерируем изображение через Hugging Face Inference API
+    // Используем стабильную модель runwayml/stable-diffusion-v1-5
     const huggingFaceResponse = await fetch(
-      'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1',
+      'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
       {
         method: 'POST',
         headers: {
@@ -125,6 +134,7 @@ export async function POST(request: NextRequest) {
     if (!huggingFaceResponse.ok) {
       const errorText = await huggingFaceResponse.text()
       console.error('Hugging Face API error:', errorText)
+      console.error('Status:', huggingFaceResponse.status)
       
       // Если модель еще загружается (503), возвращаем ошибку с рекомендацией подождать
       if (huggingFaceResponse.status === 503) {
@@ -134,8 +144,16 @@ export async function POST(request: NextRequest) {
         )
       }
       
+      // Если модель недоступна (410), возвращаем понятное сообщение
+      if (huggingFaceResponse.status === 410) {
+        return NextResponse.json(
+          { error: 'Image generation model is no longer available. Please try again later or contact support.' },
+          { status: 410 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: `Failed to generate image: ${huggingFaceResponse.statusText}` },
+        { error: `Failed to generate image: ${huggingFaceResponse.statusText}. Details: ${errorText.substring(0, 200)}` },
         { status: huggingFaceResponse.status }
       )
     }
@@ -157,8 +175,13 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Image generation error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate image'
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate image' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
