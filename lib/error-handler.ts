@@ -3,6 +3,7 @@ export type ErrorType =
   | 'article_fetch_failed' // 500, 503, таймаут и другие ошибки загрузки
   | 'article_parse_failed' // Ошибка парсинга
   | 'ai_service_error' // Ошибка AI сервиса
+  | 'image_generation_error' // Ошибка генерации изображения (410, 503)
   | 'api_key_missing' // Отсутствует API ключ
   | 'invalid_url' // Неверный URL
   | 'unknown_error' // Неизвестная ошибка
@@ -27,7 +28,42 @@ export function handleApiError(error: any, response?: Response): ErrorInfo {
       }
     }
     
-    if (response.status >= 500 || response.status === 503 || response.status === 504) {
+    // Ошибка генерации изображения (410 - модель недоступна)
+    if (response.status === 410) {
+      // Проверяем, относится ли это к генерации изображений
+      const errorMessage = error?.error || error?.message || ''
+      if (errorMessage.includes('изображен') || errorMessage.includes('image') || errorMessage.includes('модель')) {
+        return {
+          type: 'image_generation_error',
+          message: errorMessage || 'Image generation model unavailable',
+          friendlyMessage: 'Модель генерации изображений временно недоступна. Попробуйте позже.',
+        }
+      }
+      return {
+        type: 'article_fetch_failed',
+        message: 'Resource gone',
+        friendlyMessage: 'Ресурс недоступен. Попробуйте позже.',
+      }
+    }
+    
+    // Ошибка генерации изображения (503 - модель загружается)
+    if (response.status === 503) {
+      const errorMessage = error?.error || error?.message || ''
+      if (errorMessage.includes('изображен') || errorMessage.includes('image') || errorMessage.includes('loading')) {
+        return {
+          type: 'image_generation_error',
+          message: errorMessage || 'Image generation service loading',
+          friendlyMessage: 'Сервис генерации изображений загружается. Попробуйте через несколько секунд.',
+        }
+      }
+      return {
+        type: 'article_fetch_failed',
+        message: 'Server error',
+        friendlyMessage: 'Не удалось загрузить статью по этой ссылке.',
+      }
+    }
+    
+    if (response.status >= 500 || response.status === 504) {
       return {
         type: 'article_fetch_failed',
         message: 'Server error',

@@ -116,9 +116,9 @@ export async function POST(request: NextRequest) {
     const imagePrompt = promptData.choices[0].message.content.trim()
 
     // Шаг 2: Генерируем изображение через Hugging Face Inference API
-    // Используем стабильную модель runwayml/stable-diffusion-v1-5
+    // Используем новый endpoint router.huggingface.co
     const huggingFaceResponse = await fetch(
-      'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
+      'https://router.huggingface.co/models/runwayml/stable-diffusion-v1-5',
       {
         method: 'POST',
         headers: {
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       // Если модель еще загружается (503), возвращаем ошибку с рекомендацией подождать
       if (huggingFaceResponse.status === 503) {
         return NextResponse.json(
-          { error: 'Image generation service is currently loading. Please try again in a few moments.' },
+          { error: 'Сервис генерации изображений загружается. Попробуйте через несколько секунд.' },
           { status: 503 }
         )
       }
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       // Если модель недоступна (410), возвращаем понятное сообщение
       if (huggingFaceResponse.status === 410) {
         return NextResponse.json(
-          { error: 'Image generation model is no longer available. Please try again later or contact support.' },
+          { error: 'Модель генерации изображений временно недоступна. Попробуйте позже.' },
           { status: 410 }
         )
       }
