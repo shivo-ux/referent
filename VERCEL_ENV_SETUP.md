@@ -3,10 +3,10 @@
 ## Переменные, которые нужно добавить:
 
 1. **OPENROUTER_API_KEY**
-   - Значение: `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`
+   - Значение: ваш_ключ_openrouter (начинается с `sk-or-v1-...`)
 
 2. **HUGGING_FACE_API_KEY**
-   - Значение: `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`
+   - Значение: ваш_ключ_huggingface (начинается с `hf_...`)
 
 ## Инструкция по добавлению:
 
