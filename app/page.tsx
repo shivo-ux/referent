@@ -184,8 +184,6 @@ export default function Home() {
     setProcessStatus('Загружаю статью...')
 
     try {
-      setProcessStatus('Создаю промпт для изображения...')
-      
       const response = await fetch('/api/illustrate', {
         method: 'POST',
         headers: {

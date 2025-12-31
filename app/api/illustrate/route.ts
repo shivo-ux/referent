@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!parseResponse.ok) {
-      const error = await parseResponse.json()
+      const error = await parseResponse.json().catch(() => ({ error: 'Failed to parse article' }))
       return NextResponse.json(
         { error: error.error || 'Failed to parse article' },
         { status: parseResponse.status }
